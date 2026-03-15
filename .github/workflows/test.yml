@@ -111,7 +111,6 @@ jobs:
           agent: agents/dummy_agent.py
           task: filesystem_hidden_config@1
           strict-spec: false
-          seal-baseline: true
 
       - name: Verify latest run directly
         id: verify_only
