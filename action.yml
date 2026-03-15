@@ -69,7 +69,6 @@ inputs:
     required: false
     default: ".tracecore-badge.md"
 
-action_out_description: &action_out_desc "Set by src/main.py via GITHUB_OUTPUT"
 outputs:
   success:
     description: "Whether the TraceCore run passed all gates"
