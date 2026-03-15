@@ -135,7 +135,7 @@ jobs:
   Example consumption:
 
   - stable major channel: `justindobbs/tracecore-action@v1`
-  - immutable release: `justindobbs/tracecore-action@v1.0.0`
+  - immutable release: `justindobbs/tracecore-action@v1.0.1`
   - prerelease candidate: `justindobbs/tracecore-action@v1.0.0-rc.1`
 
   ## Pre-release checklist
