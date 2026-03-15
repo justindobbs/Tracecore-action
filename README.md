@@ -16,11 +16,27 @@
 
   The current action contract has been validated in a separate consumer repo for three common workflow shapes:
 
-  - basic smoke usage against the published action
-  - combined `run-and-verify` wrapper usage
-  - app-shaped downstream usage where later steps consume action outputs
+  - [`basic-smoke`](https://github.com/justindobbs/tracecore-action-test/tree/main/scenarios/basic-smoke) usage against the published action
+  - [`run-and-verify`](https://github.com/justindobbs/tracecore-action-test/tree/main/scenarios/run-and-verify) wrapper usage
+  - [`app-shaped`](https://github.com/justindobbs/tracecore-action-test/tree/main/scenarios/app-shaped) downstream usage where later steps consume action outputs
 
   For external consumer-validation fixtures and rendered badge examples, see [`tracecore-test`](https://github.com/justindobbs/tracecore-action-test).
+
+  ## External validation evidence
+
+  If you are evaluating whether to adopt `tracecore-action`, start with these public proof points:
+
+  - the source repo has passing CI for wrapper behavior and real-runtime coverage
+  - the published `@v1` action was exercised from a separate consumer repo
+  - downstream-output usage was validated in an app-shaped workflow fixture
+  - badge generation was validated both in tests and in consumer workflows
+
+  Recommended evidence trail:
+
+  - review [`tracecore-test`](https://github.com/justindobbs/tracecore-action-test)
+  - inspect the scenario READMEs under `scenarios/`
+  - pin an immutable tag if you want exact reproducibility
+  - use `@v1` if you want the vetted stable major channel
 
   ## Scope
 
@@ -264,6 +280,7 @@ jobs:
   - inspect immutable release tags for exact reproducibility
   - review `CHANGELOG.md` for release-facing changes
   - review `tracecore-test` for external-consumer examples and validation shape
+  - compare the scenario fixtures for the workflow shape closest to your intended integration
 
   ## License
 
