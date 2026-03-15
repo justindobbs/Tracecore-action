@@ -1,0 +1,139 @@
+name: "TraceCore Action"
+description: "Run thin-wrapper TraceCore run and verify flows in GitHub Actions"
+author: "Justin Dobbs"
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  command:
+    description: "TraceCore command flow to run: run, verify, or run-and-verify"
+    required: false
+    default: "run"
+  agent:
+    description: "Path to agent file (e.g., ./agents/my_agent.py)"
+    required: false
+  task:
+    description: "Task reference (e.g., filesystem_hidden_config@1)"
+    required: false
+  seed:
+    description: "Deterministic seed"
+    required: false
+    default: "0"
+  timeout:
+    description: "Wall-clock timeout in seconds"
+    required: false
+    default: "300"
+  strict-spec:
+    description: "Enable strict spec compliance mode"
+    required: false
+    default: "true"
+  replay-bundle:
+    description: "Path to a sealed baseline bundle for replay gating"
+    required: false
+    default: ""
+  strict:
+    description: "Enable strict replay checks; for run and run-and-verify this requires replay-bundle"
+    required: false
+    default: "false"
+  verify-run:
+    description: "Run artifact path or run_id to verify"
+    required: false
+    default: ""
+  verify-bundle:
+    description: "Bundle directory to verify against"
+    required: false
+    default: ""
+  verify-latest:
+    description: "When verifying, target the latest run if no explicit run/bundle is provided"
+    required: false
+    default: "true"
+  prefer-success:
+    description: "When verifying latest, prefer the latest successful run"
+    required: false
+    default: "true"
+  seal-baseline:
+    description: "Seal the latest successful run as a bundle"
+    required: false
+    default: "false"
+  tracecore-version:
+    description: "Known-good TraceCore version to install"
+    required: false
+    default: "1.1.2"
+  generate-badge:
+    description: "Emit a shields.io badge snippet tied to the run result"
+    required: false
+    default: "true"
+  badge-output:
+    description: "File to write badge markdown into"
+    required: false
+    default: ".tracecore-badge.md"
+
+action_out_description: &action_out_desc "Set by src/main.py via GITHUB_OUTPUT"
+outputs:
+  success:
+    description: "Whether the TraceCore run passed all gates"
+    value: ${{ steps.tracecore-run.outputs.success }}
+  run-id:
+    description: "TraceCore run identifier"
+    value: ${{ steps.tracecore-run.outputs.run-id }}
+  artifact-hash:
+    description: "Hash embedded in the TraceCore artifact"
+    value: ${{ steps.tracecore-run.outputs.artifact-hash }}
+  steps-used:
+    description: "Steps consumed during the run"
+    value: ${{ steps.tracecore-run.outputs.steps-used }}
+  tool-calls-used:
+    description: "Tool calls consumed during the run"
+    value: ${{ steps.tracecore-run.outputs.tool-calls-used }}
+  bundle-path:
+    description: "Path to the sealed bundle when seal-baseline is enabled"
+    value: ${{ steps.tracecore-run.outputs.bundle-path }}
+  verify-ok:
+    description: "Whether TraceCore verify passed when verify was executed"
+    value: ${{ steps.tracecore-run.outputs.verify-ok }}
+  verify-report:
+    description: "JSON report emitted by TraceCore verify when verify was executed"
+    value: ${{ steps.tracecore-run.outputs.verify-report }}
+  badge-markdown:
+    description: "Badge markdown snippet"
+    value: ${{ steps.tracecore-run.outputs.badge-markdown }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        cache: "pip"
+        python-version: "3.12"
+
+    - name: Install TraceCore
+      shell: bash
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        python -m pip install "tracecore==${{ inputs.tracecore-version }}"
+
+    - name: Run TraceCore verification
+      id: tracecore-run
+      shell: bash
+      run: |
+        set -euo pipefail
+        python "${{ github.action_path }}/src/main.py"
+      env:
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_AGENT: ${{ inputs.agent }}
+        INPUT_TASK: ${{ inputs.task }}
+        INPUT_SEED: ${{ inputs.seed }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_STRICT_SPEC: ${{ inputs.strict-spec }}
+        INPUT_REPLAY_BUNDLE: ${{ inputs['replay-bundle'] }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_VERIFY_RUN: ${{ inputs['verify-run'] }}
+        INPUT_VERIFY_BUNDLE: ${{ inputs['verify-bundle'] }}
+        INPUT_VERIFY_LATEST: ${{ inputs['verify-latest'] }}
+        INPUT_PREFER_SUCCESS: ${{ inputs['prefer-success'] }}
+        INPUT_SEAL_BASELINE: ${{ inputs['seal-baseline'] }}
+        INPUT_GENERATE_BADGE: ${{ inputs['generate-badge'] }}
+        INPUT_BADGE_OUTPUT: ${{ inputs['badge-output'] }}
