@@ -29,77 +29,77 @@ jobs:
         run: |
           mkdir -p bin .agent_bench/runs agents
           cat <<'PY' > agents/dummy_agent.py
-class DummyAgent:
-    def reset(self, task_spec):
-        pass
+            class DummyAgent:
+                def reset(self, task_spec):
+                    pass
 
-    def observe(self, observation):
-        pass
+                def observe(self, observation):
+                    pass
 
-    def act(self):
-        return {"type": "wait", "args": {}}
-PY
+                def act(self):
+                    return {"type": "wait", "args": {}}
+          PY
           cat <<'PY' > bin/tracecore
-#!/usr/bin/env python3
-from __future__ import annotations
+            #!/usr/bin/env python3
+            from __future__ import annotations
 
-import json
-import sys
-from pathlib import Path
-
-
-def main() -> int:
-    if len(sys.argv) < 2:
-        print("usage: tracecore <command>", file=sys.stderr)
-        return 1
-
-    cmd = sys.argv[1]
-    if cmd == "run":
-        runs_dir = Path(".agent_bench/runs")
-        runs_dir.mkdir(parents=True, exist_ok=True)
-        payload = {
-            "run_id": "run-stub-1234",
-            "artifact_hash": "sha256:stub",
-            "success": True,
-            "failure_type": None,
-            "steps_used": 5,
-            "tool_calls_used": 1,
-        }
-        (runs_dir / "run-stub-1234.json").write_text(json.dumps(payload), encoding="utf-8")
-        print(json.dumps(payload))
-        return 0
-
-    if cmd == "verify":
-        payload = {
-            "ok": True,
-            "run": "run-stub-1234",
-            "bundle_dir": None,
-            "checks": {
-                "strict_spec": {"ok": True, "errors": [], "mode": "strict-spec"},
-            },
-            "errors": [],
-        }
-        if "--bundle" in sys.argv:
-            bundle_dir = sys.argv[sys.argv.index("--bundle") + 1]
-            payload["bundle_dir"] = bundle_dir
-            payload["checks"]["bundle_integrity"] = {"ok": True, "errors": []}
-        print(json.dumps(payload))
-        return 0
-
-    if cmd == "bundle" and len(sys.argv) > 2 and sys.argv[2] == "seal":
-        bundle_dir = Path(".agent_bench/baselines/run-stub-1234")
-        bundle_dir.mkdir(parents=True, exist_ok=True)
-        payload = {"ok": True, "bundle_dir": str(bundle_dir)}
-        print(json.dumps(payload))
-        return 0
-
-    print("stub tracecore only handles 'run', 'verify', and 'bundle seal'", file=sys.stderr)
-    return 1
+            import json
+            import sys
+            from pathlib import Path
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-PY
+            def main() -> int:
+                if len(sys.argv) < 2:
+                    print("usage: tracecore <command>", file=sys.stderr)
+                    return 1
+
+                cmd = sys.argv[1]
+                if cmd == "run":
+                    runs_dir = Path(".agent_bench/runs")
+                    runs_dir.mkdir(parents=True, exist_ok=True)
+                    payload = {
+                        "run_id": "run-stub-1234",
+                        "artifact_hash": "sha256:stub",
+                        "success": True,
+                        "failure_type": None,
+                        "steps_used": 5,
+                        "tool_calls_used": 1,
+                    }
+                    (runs_dir / "run-stub-1234.json").write_text(json.dumps(payload), encoding="utf-8")
+                    print(json.dumps(payload))
+                    return 0
+
+                if cmd == "verify":
+                    payload = {
+                        "ok": True,
+                        "run": "run-stub-1234",
+                        "bundle_dir": None,
+                        "checks": {
+                            "strict_spec": {"ok": True, "errors": [], "mode": "strict-spec"},
+                        },
+                        "errors": [],
+                    }
+                    if "--bundle" in sys.argv:
+                        bundle_dir = sys.argv[sys.argv.index("--bundle") + 1]
+                        payload["bundle_dir"] = bundle_dir
+                        payload["checks"]["bundle_integrity"] = {"ok": True, "errors": []}
+                    print(json.dumps(payload))
+                    return 0
+
+                if cmd == "bundle" and len(sys.argv) > 2 and sys.argv[2] == "seal":
+                    bundle_dir = Path(".agent_bench/baselines/run-stub-1234")
+                    bundle_dir.mkdir(parents=True, exist_ok=True)
+                    payload = {"ok": True, "bundle_dir": str(bundle_dir)}
+                    print(json.dumps(payload))
+                    return 0
+
+                print("stub tracecore only handles 'run', 'verify', and 'bundle seal'", file=sys.stderr)
+                return 1
+
+
+            if __name__ == "__main__":
+                raise SystemExit(main())
+          PY
           chmod +x bin/tracecore
           echo "$PWD/bin" >> $GITHUB_PATH
 
@@ -142,72 +142,72 @@ PY
         run: |
           mkdir -p agents
           cat <<'PY' > agents/toy_agent.py
-class ToyAgent:
-    def __init__(self):
-        self.reset(None)
+            class ToyAgent:
+                def __init__(self):
+                    self.reset(None)
 
-    def reset(self, task_spec):
-        self.task = task_spec
-        self.memory = {"seen_paths": set(), "last_errors": {}, "pending_retry": None}
-        self.obs = None
+                def reset(self, task_spec):
+                    self.task = task_spec
+                    self.memory = {"seen_paths": set(), "last_errors": {}, "pending_retry": None}
+                    self.obs = None
 
-    def observe(self, observation):
-        self.obs = observation
+                def observe(self, observation):
+                    self.obs = observation
 
-    def act(self):
-        if self.obs:
-            last_action = self.obs.get("last_action")
-            last_result = self.obs.get("last_action_result")
-            if last_action and last_result and last_result.get("ok"):
-                if last_action.get("type") == "read_file":
-                    content = last_result.get("content", "")
-                    return {"type": "extract_value", "args": {"content": content, "key": "API_KEY"}}
-                if last_action.get("type") == "extract_value":
-                    value = last_result.get("value")
-                    if value is not None:
-                        return {"type": "set_output", "args": {"key": "API_KEY", "value": value}}
+                def act(self):
+                    if self.obs:
+                        last_action = self.obs.get("last_action")
+                        last_result = self.obs.get("last_action_result")
+                        if last_action and last_result and last_result.get("ok"):
+                            if last_action.get("type") == "read_file":
+                                content = last_result.get("content", "")
+                                return {"type": "extract_value", "args": {"content": content, "key": "API_KEY"}}
+                            if last_action.get("type") == "extract_value":
+                                value = last_result.get("value")
+                                if value is not None:
+                                    return {"type": "set_output", "args": {"key": "API_KEY", "value": value}}
 
-        if self.memory["pending_retry"] is not None:
-            action = self.memory["pending_retry"]
-            self.memory["pending_retry"] = None
-            return action
+                    if self.memory["pending_retry"] is not None:
+                        action = self.memory["pending_retry"]
+                        self.memory["pending_retry"] = None
+                        return action
 
-        last_result = None if not self.obs else self.obs.get("last_action_result")
-        if last_result and not last_result.get("ok", True):
-            err = last_result.get("error", "unknown")
-            last_action = self.obs.get("last_action")
-            if err in ("rate_limited", "temporary_failure"):
-                self.memory["pending_retry"] = last_action
-                return {"type": "wait", "args": {}}
-            if err == "file_not_found":
-                if last_action and last_action.get("type") == "read_file":
-                    path = last_action.get("args", {}).get("path")
-                    if path:
-                        self.memory["seen_paths"].add(path)
-                return self._continue_exploration()
-            if err == "key_not_found":
-                return self._continue_exploration()
+                    last_result = None if not self.obs else self.obs.get("last_action_result")
+                    if last_result and not last_result.get("ok", True):
+                        err = last_result.get("error", "unknown")
+                        last_action = self.obs.get("last_action")
+                        if err in ("rate_limited", "temporary_failure"):
+                            self.memory["pending_retry"] = last_action
+                            return {"type": "wait", "args": {}}
+                        if err == "file_not_found":
+                            if last_action and last_action.get("type") == "read_file":
+                                path = last_action.get("args", {}).get("path")
+                                if path:
+                                    self.memory["seen_paths"].add(path)
+                            return self._continue_exploration()
+                        if err == "key_not_found":
+                            return self._continue_exploration()
 
-        visible = {} if not self.obs else self.obs.get("visible_state", {})
-        files = visible.get("files_seen", [])
-        if not files:
-            return {"type": "list_dir", "args": {"path": "/app"}}
-        for path in files:
-            if path not in self.memory["seen_paths"]:
-                self.memory["seen_paths"].add(path)
-                return {"type": "read_file", "args": {"path": path}}
+                    visible = {} if not self.obs else self.obs.get("visible_state", {})
+                    files = visible.get("files_seen", [])
+                    if not files:
+                        return {"type": "list_dir", "args": {"path": "/app"}}
+                    for path in files:
+                        if path not in self.memory["seen_paths"]:
+                            self.memory["seen_paths"].add(path)
+                            return {"type": "read_file", "args": {"path": path}}
 
-        return {"type": "wait", "args": {}}
+                    return {"type": "wait", "args": {}}
 
-    def _continue_exploration(self):
-        visible = {} if not self.obs else self.obs.get("visible_state", {})
-        files = visible.get("files_seen", [])
-        for path in files:
-            if path not in self.memory["seen_paths"]:
-                self.memory["seen_paths"].add(path)
-                return {"type": "read_file", "args": {"path": path}}
-        return {"type": "wait", "args": {}}
-PY
+                def _continue_exploration(self):
+                    visible = {} if not self.obs else self.obs.get("visible_state", {})
+                    files = visible.get("files_seen", [])
+                    for path in files:
+                        if path not in self.memory["seen_paths"]:
+                            self.memory["seen_paths"].add(path)
+                            return {"type": "read_file", "args": {"path": path}}
+                    return {"type": "wait", "args": {}}
+          PY
 
       - name: Run against real TraceCore
         id: real_run
