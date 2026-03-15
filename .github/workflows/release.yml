@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Validate action sources
+        shell: bash
+        run: python -m compileall src
+
+      - name: Run focused tests
+        shell: bash
+        run: python -m pytest tests/test_main.py -q
+
+      - name: Derive release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          MAJOR="${GITHUB_REF_NAME%%.*}"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+          echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "RELEASE_MAJOR=$MAJOR" >> "$GITHUB_ENV"
+          echo "Release tag: $GITHUB_REF_NAME"
+          echo "Release version: $VERSION"
+          echo "Floating major tag to maintain: $MAJOR"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ env.RELEASE_PRERELEASE == 'true' }}
+          body: |
+            TraceCore Action release `${{ github.ref_name }}`.
+
+            Release checklist:
+            - README and action contract aligned
+            - focused wrapper tests passing
+            - floating major tag `${{ env.RELEASE_MAJOR }}` should point at this commit after verification
