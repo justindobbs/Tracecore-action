@@ -18,6 +18,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Updated action and workflow dependencies to current GitHub Actions majors, including `actions/checkout@v5` and `actions/setup-python@v6`
 - Updated README examples to point at the validated immutable `v1.0.1` release
 - Modernized consumer validation workflows in the external `tracecore-test` repository to current GitHub Actions majors
+- Refined README positioning around trust, externally validated workflow shapes, support policy, and copy-paste adoption paths
 
 ### Fixed
 - Removed unsupported YAML anchors from the published action manifest so external consumers can resolve `action.yml` correctly

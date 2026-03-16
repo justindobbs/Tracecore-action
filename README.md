@@ -1,6 +1,42 @@
 # TraceCore GitHub Action
   
-  Run TraceCore deterministic verification inside any GitHub workflow with a single step. This action is a thin wrapper around the published `tracecore` CLI: it installs a known-good TraceCore version, executes `tracecore run` and/or `tracecore verify`, optionally seals bundles, and emits a "TraceCore Verified" badge snippet for your README.
+  Run deterministic TraceCore validation in GitHub Actions with a stable, copy-paste wrapper around the published `tracecore` CLI. `tracecore-action` installs a known-good TraceCore version, executes `tracecore run` and/or `tracecore verify`, optionally seals bundles, and emits a "TraceCore Verified" badge snippet for downstream docs or status surfaces.
+
+  `tracecore-action` is designed for teams who want a GitHub-native entry point into TraceCore without rebuilding install, invocation, output parsing, and verification wiring in every workflow.
+
+  ## Why use the action?
+
+  - standardizes TraceCore install + invocation in CI
+  - exposes stable workflow outputs for downstream steps
+  - keeps versioning explicit through a known-good TraceCore default
+  - supports both direct verification and run-then-verify flows
+  - has been validated externally against the published `@v1` action contract
+
+  ## Validated workflow shapes
+
+  The current action contract has been validated in a separate consumer repo for three common workflow shapes:
+
+  - [`basic-smoke`](https://github.com/justindobbs/tracecore-action-test/tree/main/scenarios/basic-smoke) usage against the published action
+  - [`run-and-verify`](https://github.com/justindobbs/tracecore-action-test/tree/main/scenarios/run-and-verify) wrapper usage
+  - [`app-shaped`](https://github.com/justindobbs/tracecore-action-test/tree/main/scenarios/app-shaped) downstream usage where later steps consume action outputs
+
+  For external consumer-validation fixtures and rendered badge examples, see [`tracecore-test`](https://github.com/justindobbs/tracecore-action-test).
+
+  ## External validation evidence
+
+  If you are evaluating whether to adopt `tracecore-action`, start with these public proof points:
+
+  - the source repo has passing CI for wrapper behavior and real-runtime coverage
+  - the published `@v1` action was exercised from a separate consumer repo
+  - downstream-output usage was validated in an app-shaped workflow fixture
+  - badge generation was validated both in tests and in consumer workflows
+
+  Recommended evidence trail:
+
+  - review [`tracecore-test`](https://github.com/justindobbs/tracecore-action-test)
+  - inspect the scenario READMEs under `scenarios/`
+  - pin an immutable tag if you want exact reproducibility
+  - use `@v1` if you want the vetted stable major channel
 
   ## Scope
 
@@ -12,7 +48,23 @@
 
   For runtime semantics, spec rules, and CLI behavior, treat the main TraceCore repo as authoritative.
 
+  ## When to use this action vs direct CLI
+
+  Use `tracecore-action` when you want:
+
+  - a reusable GitHub Actions step with stable outputs
+  - a documented `@v1` integration surface for downstream workflows
+  - a simpler path for teams standardizing TraceCore usage across repos
+
+  Call `tracecore` directly in workflow scripts when you want:
+
+  - highly custom shell orchestration
+  - experimental runtime flags not yet surfaced here
+  - a workflow that is already deeply CLI-native and does not benefit from action outputs
+
   ## Quick start
+
+  Recommended first path:
 
   ```yaml
   name: tracecore-ci
@@ -23,26 +75,49 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: justindobbs/tracecore-action@v1
         with:
           command: run-and-verify
           agent: ./agents/my_prod_agent.py
           task: filesystem_hidden_config@1
           strict-spec: true
-          replay-bundle: .agent_bench/baselines/filesystem_hidden_config@1
-          strict: true
   ```
+
+  This is the best default if you want one step that both executes and verifies a TraceCore run.
 
   Verify an existing run or bundle directly:
 
   ```yaml
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v5
   - uses: justindobbs/tracecore-action@v1
     with:
       command: verify
       verify-run: run_1234567890
       strict-spec: true
+  ```
+
+  GitHub App-shaped downstream usage:
+
+  ```yaml
+  - uses: actions/checkout@v5
+  - id: tracecore
+    uses: justindobbs/tracecore-action@v1
+    with:
+      command: run-and-verify
+      agent: ./agents/app_agent.py
+      task: filesystem_hidden_config@1
+      strict-spec: true
+
+  - name: Build downstream summary
+    run: |
+      cat <<EOF > tracecore-summary.json
+      {
+        "success": "${{ steps.tracecore.outputs.success }}",
+        "run_id": "${{ steps.tracecore.outputs.run-id }}",
+        "verify_ok": "${{ steps.tracecore.outputs.verify-ok }}"
+      }
+      EOF
   ```
 
   Add a matrix to cover multiple agents/tasks:
@@ -55,7 +130,7 @@ jobs:
     task: [filesystem_hidden_config@1, log_alert_triage@1]
 
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: justindobbs/tracecore-action@v1
       with:
         command: run-and-verify
@@ -67,7 +142,7 @@ jobs:
   Consume verification outputs in later steps:
 
   ```yaml
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v5
   - id: tracecore
     uses: justindobbs/tracecore-action@v1
     with:
@@ -79,6 +154,20 @@ jobs:
     run: |
       echo 'verify_ok=${{ steps.tracecore.outputs.verify-ok }}'
       echo '${{ steps.tracecore.outputs.verify-report }}'
+  ```
+
+  Strict replay / bundle-gated usage:
+
+  ```yaml
+  - uses: actions/checkout@v5
+  - uses: justindobbs/tracecore-action@v1
+    with:
+      command: run-and-verify
+      agent: ./agents/my_prod_agent.py
+      task: filesystem_hidden_config@1
+      strict-spec: true
+      replay-bundle: .agent_bench/baselines/filesystem_hidden_config@1
+      strict: true
   ```
 
   ## Inputs
@@ -119,6 +208,16 @@ jobs:
   ## Version policy
 
   This action currently targets known-good TraceCore releases rather than `latest` by default. Widen compatibility only after adding stronger cross-version CI coverage.
+
+  ## Support contract
+
+  `tracecore-action` v1 is intentionally narrow and supportable:
+
+  - the action is a thin wrapper over authoritative TraceCore CLI flows
+  - `@v1` is the stable major channel for vetted updates
+  - immutable tags such as `@v1.0.1` are the safest choice when you need exact reproducibility
+  - the default `tracecore-version` represents a known-good release that has been validated with this wrapper
+  - new action features should follow existing TraceCore runtime behavior rather than inventing action-only semantics
 
   ## Releases and tags
 
@@ -165,6 +264,23 @@ jobs:
   3. Persist `.agent_bench/` artifacts between steps when using verify or bundle flows that rely on prior run state.
 
   Ensure the runner user has permission to write to the workspace and outbound network access to PyPI.
+
+  ## Trust signals
+
+  Before this action was positioned for broader public use, it was validated across:
+
+  - source-repo CI in `tracecore-action`
+  - external consumer-validation flows in `tracecore-test`
+  - published `@v1` usage from a separate repo
+  - badge generation and downstream-output consumption paths
+
+  If you are evaluating whether to adopt the action, the recommended proof points are:
+
+  - pin `@v1` for a vetted major channel
+  - inspect immutable release tags for exact reproducibility
+  - review `CHANGELOG.md` for release-facing changes
+  - review `tracecore-test` for external-consumer examples and validation shape
+  - compare the scenario fixtures for the workflow shape closest to your intended integration
 
   ## License
 
